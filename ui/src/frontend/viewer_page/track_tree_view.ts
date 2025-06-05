@@ -64,6 +64,7 @@ import {featureFlags} from '../../core/feature_flags';
 import {EmptyState} from '../../widgets/empty_state';
 import {Button} from '../../widgets/button';
 import {Intent} from '../../widgets/common';
+import {id} from 'vega';
 
 const VIRTUAL_TRACK_SCROLLING = featureFlags.register({
   id: 'virtualTrackScrolling',
@@ -136,22 +137,35 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
       trackFilter,
       filtersApplied,
     } = attrs;
+
+    // Add Frames node at the beginning if it doesn't exist
+    if (!rootNode.children.some(node => node.title === 'Frames')) {
+      const framesNode = new TrackNode({
+        uri: '/frames',
+        title: 'Frames',
+        isSummary: true,
+        collapsed: false,
+      });
+      // Add the frames node at the beginning of the children list
+      rootNode.addChildFirst(framesNode);
+    }
+
     const renderedTracks = new Array<TrackView>();
     let top = 0;
 
-    function filterMatches(node: TrackNode): boolean {
+    function filterMatches(node: TrackNode): boolean {//筛选track_view
       if (!trackFilter) return true; // Filter ignored, show all tracks.
 
       // If this track name matches filter, show it.
       if (trackFilter(node)) return true;
 
       // Also show if any of our children match.
-      if (node.children?.some(filterMatches)) return true;
+      if (node.children?.some(filterMatches)) return true;//同时也会筛选孩子
 
       return false;
     }
 
-    const renderTrack = (
+    const renderTrack = (//递归渲染单个轨道及其子轨道
       node: TrackNode,
       depth = 0,
       stickyTop = 0,
@@ -165,7 +179,7 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
       let childDepth = depth;
       let childStickyTop = stickyTop;
       if (!node.headless) {
-        top += trackView.height;
+        top += trackView.height;//累加上部的高度
         ++childDepth;
         childStickyTop += trackView.height;
       }
@@ -175,7 +189,7 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
         node.hasChildren &&
         node.children.map((track) =>
           renderTrack(track, childDepth, childStickyTop),
-        );
+        );//渲染子轨道
 
       if (node.headless) {
         return children;
@@ -207,7 +221,7 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
       }
     };
 
-    const trackVnodes = rootNode.children.map((track) => renderTrack(track));
+    const trackVnodes = rootNode.children.map((track) => renderTrack(track));//渲染所有轨道
 
     // If there are no truthy vnode values, show "empty state" placeholder.
     if (trackVnodes.every((x) => !Boolean(x))) {
@@ -234,7 +248,7 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
           title: 'Empty workspace',
         });
       }
-    }
+    }//判断所有轨道是否被过滤，若被过滤则显示无匹配轨道提示
 
     return m(
       VirtualOverlayCanvas,
@@ -246,14 +260,14 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
         overflowY: 'auto',
         overflowX: 'hidden',
         onCanvasRedraw: ({ctx, virtualCanvasSize, canvasRect}) => {
-          this.drawCanvas(
+          this.drawCanvas(//真正的绘制逻辑
             ctx,
             virtualCanvasSize,
             renderedTracks,
             canvasRect,
             rootNode,
           );
-
+          //自动触发 DOM 更新（当滚动区域变化时）
           if (VIRTUAL_TRACK_SCROLLING.get()) {
             // The VOC can ask us to redraw the canvas for any number of
             // reasons, we're interested in the case where the canvas rect has
@@ -328,6 +342,7 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
     floatingCanvasRect: Rect2D,
     rootNode: TrackNode,
   ) {
+    //定义时间轴区域
     const timelineRect = new Rect2D({
       left: TRACK_SHELL_WIDTH,
       top: 0,
@@ -346,8 +361,8 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
     using _ = canvasSave(ctx);
     canvasClip(ctx, timelineRect);
 
-    this.drawGridLines(ctx, timescale, timelineRect);
-
+    this.drawGridLines(ctx, timescale, timelineRect);//绘制时间网格线
+    //绘制轨道内容
     const tracksOnCanvas = this.drawTracks(
       renderedTracks,
       floatingCanvasRect,
@@ -356,14 +371,15 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
       timelineRect,
       visibleWindow,
     );
-
+    //绘制异步事件流
     renderFlows(this.trace, ctx, size, renderedTracks, rootNode, timescale);
-    this.drawHoveredNoteVertical(ctx, timescale, size);
-    this.drawHoveredCursorVertical(ctx, timescale, size);
-    this.drawWakeupVertical(ctx, timescale, size);
-    this.drawNoteVerticals(ctx, timescale, size);
-    this.drawAreaSelection(ctx, timescale, size);
-    this.updateInteractions(timelineRect, timescale, size, renderedTracks);
+    //下列操作都是在检测页面上的操作，而非在时间轴上的操作
+    this.drawHoveredNoteVertical(ctx, timescale, size);//绘制鼠标悬停时的竖直参考线
+    this.drawHoveredCursorVertical(ctx, timescale, size);//绘制光标对应的竖直线
+    this.drawWakeupVertical(ctx, timescale, size);//特定于唤醒事件的参考线
+    this.drawNoteVerticals(ctx, timescale, size);//绘制多个标记点的竖直参考线
+    this.drawAreaSelection(ctx, timescale, size);//绘制用户选择的时间区域（拖动选区）
+    this.updateInteractions(timelineRect, timescale, size, renderedTracks);//更新交互行为
 
     const renderTime = performance.now() - start;
     this.updatePerfStats(renderTime, renderedTracks.length, tracksOnCanvas);
@@ -396,7 +412,7 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
     }
   }
 
-  private drawTracks(
+  private drawTracks(//绘制时间轴
     renderedTracks: ReadonlyArray<TrackView>,
     floatingCanvasRect: Rect2D,
     size: Size2D,
@@ -407,14 +423,14 @@ export class TrackTreeView implements m.ClassComponent<TrackTreeViewAttrs> {
     let tracksOnCanvas = 0;
     for (const trackView of renderedTracks) {
       const {verticalBounds} = trackView;
-      if (
+      if (//判断当前轨道是否与可视区域重叠
         floatingCanvasRect.overlaps({
           ...verticalBounds,
           left: 0,
           right: size.width,
         })
       ) {
-        trackView.drawCanvas(
+        trackView.drawCanvas(//绘制当前轨道，并记录已经绘制轨道数量
           ctx,
           timelineRect,
           visibleWindow,

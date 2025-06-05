@@ -140,10 +140,161 @@ export class ThreadStateDetailsPanel implements TrackEventDetailsPanel {
           {title: 'Related thread states'},
           this.renderRelatedThreadStates(),
         ),
+        m(
+          Section,
+          {title: 'Frame Dependencies'},
+          this.renderFrameDependencies(),
+        ),
       ),
     );
   }
+  private renderFrameDependencies() {
+    const canvasWidth = 800;
+    const canvasHeight = 400;
 
+    return [
+      m('canvas', {
+        width: canvasWidth,
+        height: canvasHeight,
+        style: {
+          border: '1px solid #ccc',
+          margin: '10px 0',
+        },
+        oncreate: (vnode) => {
+          const canvas = vnode.dom as HTMLCanvasElement;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return;
+
+          // Helper function to draw arrow
+          const drawArrow = (fromX: number, fromY: number, toX: number, toY: number) => {
+            const headLength = 15; // 箭头长度
+            const headAngle = Math.PI / 6; // 箭头角度 (30度)
+
+            // 计算箭头方向
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+
+            // 调整箭头终点，使其不会与节点重叠
+            const nodeRadius = 20;
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const adjustedToX = fromX + (dx * (distance - nodeRadius)) / distance;
+            const adjustedToY = fromY + (dy * (distance - nodeRadius)) / distance;
+
+            // 计算箭头两个端点
+            const point1X = adjustedToX - headLength * Math.cos(angle - headAngle);
+            const point1Y = adjustedToY - headLength * Math.sin(angle - headAngle);
+            const point2X = adjustedToX - headLength * Math.cos(angle + headAngle);
+            const point2Y = adjustedToY - headLength * Math.sin(angle + headAngle);
+
+            // 绘制箭头主体
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(adjustedToX, adjustedToY);
+            ctx.stroke();
+
+            // 绘制箭头头部
+            ctx.beginPath();
+            ctx.moveTo(adjustedToX, adjustedToY);
+            ctx.lineTo(point1X, point1Y);
+            ctx.lineTo(point2X, point2Y);
+            ctx.closePath();
+            ctx.fill();
+          };
+
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+          
+          //TODO 实现动态数据加载
+          // Sample data - you can replace this with real data
+          const nodes = [
+            { id: 'S', x: 50, y: 200, color: '#ff0000', label: 'Start' },
+            { id: '1', x: 200, y: 100, color: '#4287f5', label: 'Thread 1' },
+            { id: '2', x: 200, y: 300, color: '#42f54b', label: 'Thread 2' },
+            { id: '3', x: 400, y: 200, color: '#f542f2', label: 'Thread 3' },
+            { id: 'E', x: 600, y: 200, color: '#ff0000', label: 'End' }
+          ];
+
+          const edges = [
+            { from: 'S', to: '1', type: 'SCHED_WAKEUP', color: '#0000ff', style: [5, 5] },
+            { from: 'S', to: '2', type: 'BINDER', color: '#00ff00', style: [] },
+            { from: '1', to: '3', type: 'IPC', color: '#ff00ff', style: [10, 5] },
+            { from: '2', to: '3', type: 'SYNC', color: '#ffa500', style: [] },
+            { from: '3', to: 'E', type: 'COMPLETE', color: '#ff0000', style: [] }
+          ];
+
+          // Draw edges with arrows
+          edges.forEach(edge => {
+            const fromNode = nodes.find(n => n.id === edge.from);
+            const toNode = nodes.find(n => n.id === edge.to);
+            if (!fromNode || !toNode) return;
+
+            ctx.strokeStyle = edge.color;
+            ctx.fillStyle = edge.color;
+            if (edge.style.length > 0) {
+              ctx.setLineDash(edge.style);
+            } else {
+              ctx.setLineDash([]);
+            }
+            ctx.lineWidth = 2;
+
+            // Draw the line with arrow
+            drawArrow(fromNode.x, fromNode.y, toNode.x, toNode.y);
+          });
+
+          // Draw nodes (on top of edges)
+          nodes.forEach(node => {
+            // Draw circle
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 20, 0, 2 * Math.PI);
+            ctx.fillStyle = node.color;
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw label
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.label, node.x, node.y);
+          });
+
+          // Draw legend
+          const legendX = 650;
+          const legendY = 50;
+          const types = [
+            { label: 'SCHED_WAKEUP', color: '#0000ff', style: [5, 5] },
+            { label: 'BINDER', color: '#00ff00', style: [] },
+            { label: 'IPC', color: '#ff00ff', style: [10, 5] },
+            { label: 'SYNC', color: '#ffa500', style: [] }
+          ];
+
+          types.forEach((type, i) => {
+            const y = legendY + i * 25;
+            
+            // Draw line with arrow for legend
+            ctx.strokeStyle = type.color;
+            ctx.fillStyle = type.color;
+            ctx.setLineDash(type.style);
+            ctx.lineWidth = 2;
+            drawArrow(legendX, y, legendX + 40, y);
+
+            // Draw label
+            ctx.fillStyle = '#000';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(type.label, legendX + 50, y);
+          });
+        }
+      }),
+      m(TreeNode, {
+        left: 'Duration',
+        right: '1ms',
+      })
+    ];
+  }
   private renderLoadingText() {
     if (!this.threadState) {
       return 'Loading';

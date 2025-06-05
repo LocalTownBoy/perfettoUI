@@ -111,15 +111,15 @@ export class TrackView {
     this.verticalBounds = {top, bottom: top + heightPx};
   }
 
-  renderDOM(attrs: TrackViewAttrs, children: m.Children) {
+  renderDOM(attrs: TrackViewAttrs, children: m.Children) {//渲染单个轨道（track）的壳层结构。
     const {
-      scrollToOnCreate,
+      scrollToOnCreate,//是否在创建时自动滚动到该轨道
       reorderable = false,
       collapsible,
       removable,
     } = attrs;
     const {node, renderer, height} = this;
-
+    //node轨道节点对象，包含元数据（如 ID、标题、是否可折叠等）
     const buttons = attrs.lite
       ? []
       : [
@@ -240,7 +240,7 @@ export class TrackView {
     );
   }
 
-  drawCanvas(
+  drawCanvas(//时间轨道的绘制
     ctx: CanvasRenderingContext2D,
     rect: Rect2D,
     visibleWindow: HighPrecisionTimeSpan,
@@ -264,15 +264,15 @@ export class TrackView {
     // translate the canvas and create a new timescale.
     using _ = canvasSave(ctx);
     canvasClip(ctx, trackRect);
-    ctx.translate(trackRect.left, trackRect.top);
-
+    ctx.translate(trackRect.left, trackRect.top);//为了让每个轨道渲染器都可以使用相对坐标系进行绘制，而不需要关心全局坐标
+    //visibleWindow 时间区间 [start, end] 映射为轨道宽度内的像素范围 [0, width]
     const timescale = new TimeScale(visibleWindow, {
       left: 0,
       right: trackRect.width,
     });
 
     const start = performance.now();
-
+    //若轨道存在唯一标识符，开始绘制，绘制方法在track_manager中
     node.uri &&
       renderer?.render({
         trackUri: node.uri,
@@ -356,7 +356,7 @@ export class TrackView {
     });
   }
 
-  private isHighlighted() {
+  private isHighlighted() {//选中的track会被标亮
     const {trace, node} = this;
     // The track should be highlighted if the current search result matches this
     // track or one of its children.

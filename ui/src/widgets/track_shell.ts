@@ -110,13 +110,17 @@ export interface TrackShellAttrs extends HTMLAttrs {
 
   // Mouse events within the track content element.
   onTrackContentMouseMove?(pos: Point2D, contentSize: Bounds2D): void;
+
   onTrackContentMouseOut?(): void;
+
   onTrackContentClick?(pos: Point2D, contentSize: Bounds2D): boolean;
 
   // If reorderable, these functions will be called when track shells are
   // dragged and dropped.
   onMoveBefore?(nodeId: string): void;
+
   onMoveInside?(nodeId: string): void;
+
   onMoveAfter?(nodeId: string): void;
 }
 
@@ -410,8 +414,8 @@ export class TrackShell implements m.ClassComponent<TrackShellAttrs> {
         },
       },
       attrs.subtitle &&
-        showSubtitleInContent(attrs) &&
-        m(MiddleEllipsis, {text: attrs.subtitle}),
+      showSubtitleInContent(attrs) &&
+      m(MiddleEllipsis, {text: attrs.subtitle}),
     );
   }
 }

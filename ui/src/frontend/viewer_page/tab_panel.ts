@@ -48,19 +48,19 @@ export class TabPanel implements m.ClassComponent<TabPanelAttrs> {
       children,
     );
   }
-
+  //收集并构造所有要显示的标签页
   private gatherTabs(trace: TraceImpl) {
     const tabMan = trace.tabs;
     const tabList = trace.tabs.openTabsUri;
     const resolvedTabs = tabMan.resolveTabs(tabList);
-
+  //解析标签
     const tabs = resolvedTabs.map(({uri, tab: tabDesc}): Tab => {
       if (tabDesc) {
         return {
           key: uri,
           hasCloseButton: true,
           title: tabDesc.content.getTitle(),
-          content: tabDesc.content.render(),
+          content: tabDesc.content.render(),//渲染tab标签页内容
           onClose: () => {
             trace.tabs.hideTab(uri);
           },
@@ -76,7 +76,7 @@ export class TabPanel implements m.ClassComponent<TabPanelAttrs> {
     });
 
     // Add the permanent current selection tab to the front of the list of tabs
-    tabs.unshift({
+    tabs.unshift({//current selection永远固定在tabs的最前面
       key: 'current_selection',
       title: 'Current Selection',
       content: m(CurrentSelectionTab, {trace}),
@@ -84,7 +84,7 @@ export class TabPanel implements m.ClassComponent<TabPanelAttrs> {
 
     return tabs;
   }
-
+  //tab左侧渲染一个下拉菜单
   private renderDropdownMenu(trace: TraceImpl): m.Child {
     const entries = trace.tabs.tabs
       .filter((tab) => tab.isEphemeral === false)

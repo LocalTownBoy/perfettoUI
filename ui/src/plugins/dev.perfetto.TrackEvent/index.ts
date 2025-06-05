@@ -34,6 +34,7 @@ export default class implements PerfettoPlugin {
   private parentTrackNodes = new Map<string, TrackNode>();
 
   async onTraceLoad(ctx: Trace): Promise<void> {
+    //将查询到的trace存储在res中
     const res = await ctx.engine.query(`
       include perfetto module viz.summary.track_event;
       select
@@ -77,6 +78,7 @@ export default class implements PerfettoPlugin {
     const processGroupsPlugin = ctx.plugins.getPlugin(
       ProcessThreadGroupsPlugin,
     );
+    //一个id对应一个trackNode的map
     const trackIdToTrackNode = new Map<number, TrackNode>();
     for (; it.valid(); it.next()) {
       const {
@@ -96,13 +98,11 @@ export default class implements PerfettoPlugin {
         pid,
         processName,
       } = it;
-
       // Don't add track_event tracks which don't have any data and don't have
       // any children.
       if (!hasData && !hasChildren) {
         continue;
       }
-
       const kind = isCounter ? COUNTER_TRACK_KIND : SLICE_TRACK_KIND;
       const trackIds = rawTrackIds.split(',').map((v) => Number(v));
       const title = getTrackName({
@@ -117,7 +117,7 @@ export default class implements PerfettoPlugin {
         pid,
       });
       const uri = `/track_event_${trackIds[0]}`;
-      if (hasData && isCounter) {
+      if (hasData && isCounter) {//如果是计数器轨道
         // Don't show any builtin counter.
         if (builtinCounterType !== null) {
           continue;
@@ -143,7 +143,7 @@ export default class implements PerfettoPlugin {
             title,
           ),
         });
-      } else if (hasData) {
+      } else if (hasData) {//如果是slice轨道
         ctx.tracks.registerTrack({
           uri,
           title,
@@ -171,6 +171,7 @@ export default class implements PerfettoPlugin {
         isSummary: hasData === 0,
         uri: uri,
       });
+
       parent.addChildInOrder(node);
       trackIdToTrackNode.set(trackIds[0], node);
     }

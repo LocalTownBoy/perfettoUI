@@ -841,7 +841,7 @@ export abstract class BaseSliceTrack<
   onMouseOut(): void {
     this.updateHoveredSlice(undefined);
   }
-
+  //更新线程悬浮时的信息
   private updateHoveredSlice(slice?: SliceT): void {
     const lastHoveredSlice = this.hoveredSlice;
     this.hoveredSlice = slice;
@@ -861,8 +861,9 @@ export abstract class BaseSliceTrack<
       this.hoverTooltip = args.tooltip || [];
     }
   }
-
+  //点击事件track，会弹出窗口
   onMouseClick(event: TrackMouseEvent): boolean {
+    //该事件的基本信息
     const slice = this.findSlice(event);
     if (slice === undefined) {
       return false;

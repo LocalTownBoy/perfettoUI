@@ -408,6 +408,7 @@ export class SelectionManagerImpl implements SelectionManager {
       trackUri,
       eventId,
     };
+    //弹出一个current selection 窗口
     this.createTrackEventDetailsPanel(selection, serializedDetailsPanel);
     this.setSelection(selection, opts);
   }
@@ -433,7 +434,7 @@ export class SelectionManagerImpl implements SelectionManager {
     }
 
     const detailsPanel: SelectionDetailsPanel = {
-      render: () => panel.render(),
+      render: () => panel.render(),//thread_state_details_panel.ts
       serializatonState: () => panel.serialization?.state,
       isLoading: true,
     };

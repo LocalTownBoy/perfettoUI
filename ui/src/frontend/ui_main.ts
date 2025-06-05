@@ -794,7 +794,7 @@ export class UiMainPerTrace implements m.ClassComponent {
       {hotkeys},
       m(
         'main',
-        m(Sidebar, {trace: this.trace}),
+        m(Sidebar, {trace: this.trace}),//侧边隐藏栏
         m(Topbar, {
           omnibox: this.renderOmnibox(),
           trace: this.trace,

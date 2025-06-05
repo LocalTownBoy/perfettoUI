@@ -221,6 +221,7 @@ export class ProcessSchedulingTrack implements TrackRenderer {
 
   render({ctx, size, timescale, visibleWindow}: TrackRenderContext): void {
     // TODO: fonts and colors should come from the CSS and not hardcoded here.
+    //获取数据
     const data = this.fetcher.data;
 
     if (data === undefined) return; // Can't possibly draw anything.
@@ -240,25 +241,26 @@ export class ProcessSchedulingTrack implements TrackRenderer {
     assertTrue(data.starts.length === data.utids.length);
 
     const cpuTrackHeight = Math.floor(RECT_HEIGHT / data.maxCpu);
-
+    //遍历并绘制每一个时间轴
     for (let i = 0; i < data.ends.length; i++) {
       const tStart = Time.fromRaw(data.starts[i]);
       const tEnd = Time.fromRaw(data.ends[i]);
 
       // Cull slices that lie completely outside the visible window
+      //判断当前轨道是否在可显示区域内
       if (!visibleWindow.overlaps(tStart, tEnd)) continue;
 
       const utid = data.utids[i];
       const cpu = data.cpus[i];
-
+      //将时间转换为像素
       const rectStart = Math.floor(timescale.timeToPx(tStart));
       const rectEnd = Math.floor(timescale.timeToPx(tEnd));
       const rectWidth = Math.max(1, rectEnd - rectStart);
-
+      //获取当前线程的相关信息
       const threadInfo = this.threads.get(utid);
       // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
       const pid = (threadInfo ? threadInfo.pid : -1) || -1;
-
+      //当前是否显示提示框的条件
       const isHovering = this.trace.timeline.hoveredUtid !== undefined;
       const isThreadHovered = this.trace.timeline.hoveredUtid === utid;
       const isProcessHovered = this.trace.timeline.hoveredPid === pid;
@@ -282,6 +284,7 @@ export class ProcessSchedulingTrack implements TrackRenderer {
     if (hoveredThread !== undefined && this.mousePos !== undefined) {
       const tidText = `T: ${hoveredThread.threadName} [${hoveredThread.tid}]`;
       // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+      //若放置在进程上，显示当前进程和线程
       if (hoveredThread.pid) {
         const pidText = `P: ${hoveredThread.procName} [${hoveredThread.pid}]`;
         drawTrackHoverTooltip(ctx, this.mousePos, size, pidText, tidText);
